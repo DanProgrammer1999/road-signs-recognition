@@ -3,13 +3,14 @@ from scipy import ndimage
 import matplotlib.pyplot as plt
 import csv
 import os
-
+from PIL import Image
 
 class Parameters:
     train_set_path = os.path.join(os.getcwd(), "GTSRB", "Train")
     test_set_path = os.path.join(os.getcwd(), "GTSRB", "Test")
     test_set_annotation_filename = "GT-final_test.csv"
 
+    resize_dim = (30, 30)
 
 class DataUtils:
     def __init__(self):
@@ -92,3 +93,9 @@ class DataUtils:
         res = np.pad(arr, paddings, 'constant')
 
         return res
+
+    @staticmethod
+    def resize(arr):
+        res = Image.fromarray(arr)
+        res = res.resize(Parameters.resize_dim)
+        return np.array(res)
