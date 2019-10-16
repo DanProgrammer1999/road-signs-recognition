@@ -1,3 +1,4 @@
+import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import os
@@ -54,3 +55,25 @@ def get_test_data():
             labels.append(row[7])  # the 8th column is the label
 
     return images, labels
+
+
+def make_square(arr):
+    """
+    Pad first 2 dimensions of array to a square shape with padding equally spread to both sides
+    :param arr: the array to be padded
+    :return:    square-shaped array padded with 0's
+    """
+    if arr.shape[0] == arr.shape[1]:
+        return arr
+
+    longest_side = max(arr.shape[0:2])
+
+    paddings = [(longest_side - side) for side in arr.shape[0:2]]
+    if len(arr.shape) > 2:
+        paddings += [0]*(len(arr.shape) - 2)
+
+    paddings = tuple((padding//2, padding - (padding//2)) for padding in paddings)
+
+    res = np.pad(arr, paddings, 'constant')
+
+    return res
