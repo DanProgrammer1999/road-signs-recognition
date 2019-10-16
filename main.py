@@ -5,12 +5,14 @@ import csv
 import os
 from PIL import Image
 
+
 class Parameters:
     train_set_path = os.path.join(os.getcwd(), "GTSRB", "Train")
     test_set_path = os.path.join(os.getcwd(), "GTSRB", "Test")
     test_set_annotation_filename = "GT-final_test.csv"
 
     resize_dim = (30, 30)
+
 
 class DataUtils:
     def __init__(self):
@@ -24,6 +26,12 @@ class DataUtils:
             self.training_data, self.training_labels = self.get_train_data()
         if testing:
             self.testing_data, self.testing_labels = self.get_test_data()
+
+    def transform_data(self):
+        if self.training_data:
+            self.training_data = list(map(DataUtils.transform_image, self.training_data))
+        if self.testing_data:
+            self.testing_data = list(map(DataUtils.transform_image, self.testing_data))
 
     @staticmethod
     def get_train_data():
@@ -99,3 +107,7 @@ class DataUtils:
         res = Image.fromarray(arr)
         res = res.resize(Parameters.resize_dim)
         return np.array(res)
+
+    @staticmethod
+    def transform_image(arr):
+        return DataUtils.resize(DataUtils.make_square(arr))
