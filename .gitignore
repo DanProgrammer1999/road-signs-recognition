@@ -106,3 +106,4 @@ venv.bak/
 .idea/*
 GTSRB/*
 report_materials/*
+test.py

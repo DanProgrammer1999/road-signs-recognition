@@ -27,6 +27,8 @@ class DataUtils:
         if testing:
             self.testing_data, self.testing_labels = self.get_test_data()
 
+        return self
+
     def transform_data(self):
         if self.training_data:
             self.training_data = list(map(DataUtils.transform_image, self.training_data))
