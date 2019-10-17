@@ -12,6 +12,7 @@ class Parameters:
     test_set_annotation_filename = "GT-final_test.csv"
 
     resize_dim = (30, 30)
+    track_length = 30
 
 
 class DataUtils:
@@ -34,6 +35,22 @@ class DataUtils:
             self.training_data = list(map(DataUtils.transform_image, self.training_data))
         if self.testing_data:
             self.testing_data = list(map(DataUtils.transform_image, self.testing_data))
+
+    def train_validation_split(self, train_portion=0.8):
+        tracks = np.split(self.training_data, len(self.training_data)//Parameters.track_length)
+        np.random.shuffle(tracks)
+
+        train_size = int(train_portion * len(tracks))
+
+        train, validation = [], []
+
+        for i in range(len(tracks)):
+            if i < train_size:
+                train += tracks[i]
+            else:
+                validation += tracks[i]
+
+        return train, validation
 
     @staticmethod
     def get_train_data():
