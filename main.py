@@ -1,8 +1,7 @@
-import numpy as np
-from scipy import ndimage
-import matplotlib.pyplot as plt
 import csv
 import os
+import matplotlib.pyplot as plt
+import numpy as np
 from PIL import Image
 
 
@@ -37,20 +36,27 @@ class DataUtils:
             self.testing_data = list(map(DataUtils.transform_image, self.testing_data))
 
     def train_validation_split(self, train_portion=0.8):
-        tracks = np.split(self.training_data, len(self.training_data)//Parameters.track_length)
-        np.random.shuffle(tracks)
+        tracks_indexes = np.array(range(len(self.training_data) // Parameters.track_length))
 
-        train_size = int(train_portion * len(tracks))
+        np.random.shuffle(tracks_indexes)
 
-        train, validation = [], []
+        train_size = int(train_portion * len(tracks_indexes))
 
-        for i in range(len(tracks)):
+        train_data, train_labels, validation_data, validation_labels = [], [], [], []
+
+        for i in range(len(tracks_indexes)):
+            curr_data = self.training_data[i * Parameters.track_length:
+                                           i * Parameters.track_length + Parameters.track_length]
+            curr_labels = self.training_labels[i * Parameters.track_length:
+                                               i * Parameters.track_length + Parameters.track_length]
             if i < train_size:
-                train += tracks[i]
+                train_data += curr_data
+                train_labels += curr_labels
             else:
-                validation += tracks[i]
+                validation_data += curr_data
+                validation_labels += curr_labels
 
-        return train, validation
+        return train_data, train_labels, validation_data, validation_labels
 
     @staticmethod
     def get_train_data():
@@ -73,7 +79,7 @@ class DataUtils:
                 # loop over all images in current annotations file
                 for row in csv_reader:
                     images.append(plt.imread(os.path.join(prefix, row[0])))  # the 1th column is the filename
-                    labels.append(row[7])  # the 8th column is the label
+                    labels.append(int(row[7]))  # the 8th column is the label
 
         return images, labels
 
@@ -94,8 +100,9 @@ class DataUtils:
             next(csv_reader)  # skip header
             # loop over all images in current annotations file
             for row in csv_reader:
-                images.append(plt.imread(os.path.join(Parameters.test_set_path, row[0])))  # the 1th column is the filename
-                labels.append(row[7])  # the 8th column is the label
+                images.append(
+                    plt.imread(os.path.join(Parameters.test_set_path, row[0])))  # the 1th column is the filename
+                labels.append(int(row[7]))  # the 8th column is the label
 
         return images, labels
 
@@ -113,9 +120,9 @@ class DataUtils:
 
         paddings = [(longest_side - side) for side in arr.shape[0:2]]
         if len(arr.shape) > 2:
-            paddings += [0]*(len(arr.shape) - 2)
+            paddings += [0] * (len(arr.shape) - 2)
 
-        paddings = tuple((padding//2, padding - (padding//2)) for padding in paddings)
+        paddings = tuple((padding // 2, padding - (padding // 2)) for padding in paddings)
 
         res = np.pad(arr, paddings, 'constant')
 
