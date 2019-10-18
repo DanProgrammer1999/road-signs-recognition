@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+import cv2
 
 
 class Parameters:
@@ -130,9 +131,7 @@ class DataUtils:
 
     @staticmethod
     def resize(arr):
-        res = Image.fromarray(arr)
-        res = res.resize(Parameters.resize_dim)
-        return np.array(res)
+        return cv2.resize(arr, Parameters.resize_dim)
 
     @staticmethod
     def transform_image(arr):
