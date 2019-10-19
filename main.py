@@ -29,6 +29,8 @@ class DataUtils:
         self.training_labels = None
         self.testing_data = None
         self.testing_labels = None
+        self.validation_data = None
+        self.validation_labels = None
 
     def load_data(self, training=True, testing=True):
         if training:
@@ -45,27 +47,33 @@ class DataUtils:
             self.testing_data = list(map(DataUtils.transform_image, self.testing_data))
 
     def train_validation_split(self, train_portion=0.8):
-        tracks_indexes = np.array(range(len(self.training_data) // Parameters.track_length))
+        train_data, train_labels = [], []
+        validation_data, validation_labels = [], []
+        start_index = 0
 
-        np.random.shuffle(tracks_indexes)
+        classes = list(range(43))
 
-        train_size = int(train_portion * len(tracks_indexes))
+        for c in classes:
+            class_count = self.training_labels.count(c)
+            class_end_index = start_index + class_count
 
-        train_data, train_labels, validation_data, validation_labels = [], [], [], []
+            train_size = int(np.ceil(train_portion * class_count))
+            # Set to either include or exclude an incomplete track from train set
+            # depending on how much of it should be in train set (more or less than a half)
+            train_size -= train_size % Parameters.track_length
 
-        for i in range(len(tracks_indexes)):
-            curr_data = self.training_data[i * Parameters.track_length:
-                                           i * Parameters.track_length + Parameters.track_length]
-            curr_labels = self.training_labels[i * Parameters.track_length:
-                                               i * Parameters.track_length + Parameters.track_length]
-            if i < train_size:
-                train_data += curr_data
-                train_labels += curr_labels
-            else:
-                validation_data += curr_data
-                validation_labels += curr_labels
+            train_data += self.training_data[start_index: start_index + train_size]
+            train_labels += self.training_labels[start_index: start_index + train_size]
 
-        return train_data, train_labels, validation_data, validation_labels
+            validation_data += self.training_data[start_index + train_size: class_end_index]
+            validation_labels += self.training_labels[start_index + train_size: class_end_index]
+
+            start_index = class_end_index
+
+        self.training_data = train_data
+        self.training_labels = train_labels
+        self.validation_data = validation_data
+        self.validation_labels = validation_labels
 
     @staticmethod
     def get_train_data():
