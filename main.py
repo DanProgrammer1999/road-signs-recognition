@@ -21,6 +21,8 @@ class Parameters:
     brightness_beta_range = (-15, 30)
 
     blur_kernel_range = (1, 3)
+    # Number of images that will be blended together to generate a new image for augmentation
+    augment_images_count = 25
 
 
 class DataUtils:
@@ -74,6 +76,21 @@ class DataUtils:
         self.training_labels = train_labels
         self.validation_data = validation_data
         self.validation_labels = validation_labels
+
+    def augment(self):
+        classes = range(43)
+        frequencies = [self.training_labels.count(c) for c in classes]
+        target = max(frequencies)
+
+        start_index = 0
+        for i, c in enumerate(classes):
+            end_index = start_index + frequencies[i]
+            class_images = self.training_data[start_index:end_index]
+            new_images = DataUtils.generate_images(class_images, target - len(class_images))
+
+            self.training_labels += [c]*(target - len(class_images))
+            self.training_data += new_images
+            start_index = end_index
 
     @staticmethod
     def get_train_data():
@@ -201,3 +218,15 @@ class DataUtils:
 
         else:
             raise NotImplementedError('Method {} is not implemented'.format(method))
+
+    @staticmethod
+    def generate_images(images, image_count):
+        res = []
+        for i in range(image_count):
+            indexes = np.random.choice(len(images), min(Parameters.augment_images_count, len(images)), replace=False)
+            sample_images = [images[j] for j in indexes]
+            np.random.sample()
+            new_image = DataUtils.generate_image(sample_images)
+            res.append(new_image)
+
+        return res
