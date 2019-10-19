@@ -51,24 +51,24 @@ class DataUtils:
         validation_data, validation_labels = [], []
         start_index = 0
 
-        classes = list(range(43))
-
-        for c in classes:
+        for c in range(43):
             class_count = self.training_labels.count(c)
-            class_end_index = start_index + class_count
+            end_index = start_index + class_count
 
-            train_size = int(np.ceil(train_portion * class_count))
-            # Set to either include or exclude an incomplete track from train set
-            # depending on how much of it should be in train set (more or less than a half)
-            train_size -= train_size % Parameters.track_length
+            track_indexes = list(range(start_index, end_index, Parameters.track_length))
+            np.random.shuffle(track_indexes)
 
-            train_data += self.training_data[start_index: start_index + train_size]
-            train_labels += self.training_labels[start_index: start_index + train_size]
+            train_size = int(np.ceil(len(track_indexes) * train_portion))
 
-            validation_data += self.training_data[start_index + train_size: class_end_index]
-            validation_labels += self.training_labels[start_index + train_size: class_end_index]
+            for i, index in enumerate(track_indexes):
+                if i < train_size:
+                    train_data += self.training_data[index: index + Parameters.track_length]
+                else:
+                    validation_data += self.training_data[index: index + Parameters.track_length]
 
-            start_index = class_end_index
+            train_labels += [c] * train_size * Parameters.track_length
+            validation_labels += [c] * (len(track_indexes) - train_size) * Parameters.track_length
+            start_index = end_index
 
         self.training_data = train_data
         self.training_labels = train_labels
@@ -95,6 +95,7 @@ class DataUtils:
                 next(csv_reader)  # skip header
                 # loop over all images in current annotations file
                 for row in csv_reader:
+                    # images.append('Class {}, track {}, image {}'.format(c, int(row[0][:5]), int(row[0][6:-4])))
                     images.append(plt.imread(os.path.join(prefix, row[0])))  # the 1th column is the filename
                     labels.append(int(row[7]))  # the 8th column is the label
 
