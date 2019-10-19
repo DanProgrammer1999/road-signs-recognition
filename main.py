@@ -1,18 +1,26 @@
 import csv
 import os
+
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
-import cv2
 
 
 class Parameters:
-    train_set_path = os.path.join(os.getcwd(), "GTSRB", "Train")
-    test_set_path = os.path.join(os.getcwd(), "GTSRB", "Test")
-    test_set_annotation_filename = "GT-final_test.csv"
+    train_set_path = os.path.join(os.getcwd(), 'GTSRB', 'Train')
+    test_set_path = os.path.join(os.getcwd(), 'GTSRB', 'Test')
+    test_set_annotation_filename = 'GT-final_test.csv'
 
     resize_dim = (30, 30)
     track_length = 30
+
+    brightness_prob = 0.5
+    blur_prob = 1
+
+    brightness_alpha_range = (0.6, 2.3)
+    brightness_beta_range = (-15, 30)
+
+    blur_kernel_range = (1, 3)
 
 
 class DataUtils:
@@ -136,3 +144,51 @@ class DataUtils:
     @staticmethod
     def transform_image(arr):
         return DataUtils.resize(DataUtils.make_square(arr))
+
+    @staticmethod
+    def generate_image(images, method='random'):
+        """
+        Generate an image out of given ones and change it randomly.
+        Used in augmentation
+
+        :param images: images to blend together to form a new image
+        :param method: how to change the blended image. One of the options:
+                      'brightness', 'blur', or 'random'
+                      'brightness' mode transforms the image by alpha*x + beta,
+                      where alpha and beta are chosen randomly from uniform distribution
+                      'blur' applies blur kernel of random size to the picture
+                      'random' applies a combination of previous modes (or none of them)
+                      depending on the outcome of random variables
+
+        :return: an image made by blending input images and applying random transformation to them
+        """
+
+        res_image = images[0]
+        for i in range(1, len(images)):
+            res_image = cv2.addWeighted(res_image, 0.5, images[i], 0.5, 0)
+
+        # Methods: change_brightness (brightness), add_blur (blur)
+        if method == 'random':
+            probs = np.random.random(2)
+            change_brightness = probs[0] < Parameters.brightness_prob
+            add_blur = probs[1] < Parameters.blur_prob
+
+            if change_brightness:
+                res_image = DataUtils.generate_image([res_image], 'brightness')
+
+            if add_blur:
+                res_image = DataUtils.generate_image([res_image], 'blur')
+
+            return res_image
+
+        elif method == 'brightness':
+            alpha = np.random.uniform(*Parameters.brightness_alpha_range)
+            beta = np.random.uniform(*Parameters.brightness_beta_range)
+            return cv2.convertScaleAbs(res_image, alpha=alpha, beta=beta)
+
+        elif method == 'blur':
+            kernel_size = np.random.randint(*Parameters.blur_kernel_range)
+            return cv2.blur(res_image, (kernel_size, kernel_size))
+
+        else:
+            raise NotImplementedError('Method {} is not implemented'.format(method))
