@@ -4,13 +4,18 @@ import os
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.stats import mode
 from skimage import color
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
 
 
 class Parameters:
     train_set_path = os.path.join(os.getcwd(), 'GTSRB', 'Train')
     test_set_path = os.path.join(os.getcwd(), 'GTSRB', 'Test')
     test_set_annotation_filename = 'GT-final_test.csv'
+
+    n_trees = 100
 
     resize_dim = (30, 30)
     track_length = 30
@@ -253,3 +258,37 @@ class DataUtils:
             res.append(new_image)
 
         return res
+
+
+class Model:
+    def __init__(self):
+        self.__classifiers = []
+
+    def fit(self, train_data, train_labels):
+        for i in range(Parameters.n_trees):
+            classifier = DecisionTreeClassifier(max_features="sqrt")
+            bs_x, bs_y = Model.__bootstrap(train_data, train_labels)
+            classifier.fit(bs_x, bs_y)
+            self.__classifiers.append(classifier)
+
+    def predict(self, test_data):
+        if not self.__classifiers:
+            raise Exception("Model is not fit yet.")
+
+        predictions = np.zeros((Parameters.n_trees, test_data.shape[0]), dtype="int")
+        for i in range(Parameters.n_trees):
+            predictions[i, :] = self.__classifiers[i].predict(test_data)
+
+        prediction = mode(predictions, axis=0)[0].ravel()
+        return prediction
+
+    @staticmethod
+    def accuracy_score(test_labels, predicted):
+        return accuracy_score(test_labels, predicted)
+
+    @staticmethod
+    def __bootstrap(data, labels):
+        index = np.random.randint(0, len(data), len(data))
+        res_data = [data[i] for i in index]
+        res_labels = [labels[i] for i in index]
+        return np.array(res_data), np.array(res_labels)
