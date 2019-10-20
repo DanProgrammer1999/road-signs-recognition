@@ -4,9 +4,7 @@ import os
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import mode
-from skimage import color
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
 
@@ -15,20 +13,20 @@ class Parameters:
     test_set_path = os.path.join(os.getcwd(), 'GTSRB', 'Test')
     test_set_annotation_filename = 'GT-final_test.csv'
 
-    n_trees = 100
+    n_trees = 512
 
     resize_dim = (30, 30)
     track_length = 30
 
-    brightness_prob = 0.5
-    blur_prob = 0.5
+    brightness_prob = 0.4
+    blur_prob = 0.01
 
-    brightness_alpha_range = (0.6, 2.3)
-    brightness_beta_range = (-15, 30)
+    brightness_alpha_range = (0.5, 2)
+    brightness_beta_range = (-20, 20)
 
     blur_kernel_range = (1, 3)
     # Number of images that will be blended together to generate a new image for augmentation
-    augment_images_count = 10
+    augment_images_count = 5
 
 
 class DataUtils:
@@ -186,7 +184,7 @@ class DataUtils:
     @staticmethod
     def normalize_set(dataset):
         # Assuming shape is the same for all images
-        shape = len(dataset), dataset[0].shape[0]*dataset[0].shape[1]
+        shape = len(dataset), dataset[0].shape[0]*dataset[0].shape[1]*dataset[0].shape[2]
         res = np.zeros(shape, np.float)
         for i, img in enumerate(dataset):
             res[i] = DataUtils.normalize(img)
@@ -195,9 +193,9 @@ class DataUtils:
 
     @staticmethod
     def normalize(image):
-        grayscale = color.rgb2gray(image)
-
-        return grayscale.flatten()
+        # res = color.rgb2gray(image)
+        res = image/np.max(image)
+        return res.flatten()
 
     @staticmethod
     def generate_image(images, method='random'):
@@ -262,33 +260,23 @@ class DataUtils:
 
 class Model:
     def __init__(self):
-        self.__classifiers = []
+        self.__classifier = None
 
-    def fit(self, train_data, train_labels):
-        for i in range(Parameters.n_trees):
-            classifier = DecisionTreeClassifier(max_features="sqrt")
-            bs_x, bs_y = Model.__bootstrap(train_data, train_labels)
-            classifier.fit(bs_x, bs_y)
-            self.__classifiers.append(classifier)
+    def fit(self, train_data, train_labels, validation_data, validation_labels):
+        self.__classifier = RandomForestClassifier(
+            max_features="auto",
+            n_estimators=Parameters.n_trees,
+            n_jobs=-1,
+            criterion="gini",
+            min_samples_leaf=2
+        )
+        self.__classifier.fit(train_data, train_labels)
+        validation = self.__classifier.predict(validation_data)
+        return self.accuracy_score(validation_labels, validation)
 
     def predict(self, test_data):
-        if not self.__classifiers:
-            raise Exception("Model is not fit yet.")
-
-        predictions = np.zeros((Parameters.n_trees, test_data.shape[0]), dtype="int")
-        for i in range(Parameters.n_trees):
-            predictions[i, :] = self.__classifiers[i].predict(test_data)
-
-        prediction = mode(predictions, axis=0)[0].ravel()
-        return prediction
+        return self.__classifier.predict(test_data)
 
     @staticmethod
     def accuracy_score(test_labels, predicted):
         return accuracy_score(test_labels, predicted)
-
-    @staticmethod
-    def __bootstrap(data, labels):
-        index = np.random.randint(0, len(data), len(data))
-        res_data = [data[i] for i in index]
-        res_labels = [labels[i] for i in index]
-        return np.array(res_data), np.array(res_labels)
