@@ -94,9 +94,10 @@ class DataUtils:
             start_index = end_index
 
     def normalize_images(self):
-        self.training_data = list(map(DataUtils.normalize, self.training_data))
-        self.validation_data = list(map(DataUtils.normalize, self.validation_data))
-        self.testing_data = list(map(DataUtils.normalize, self.testing_data))
+        self.training_data = DataUtils.normalize_set(self.training_data)
+        if self.validation_data:
+            self.validation_data = DataUtils.normalize_set(self.validation_data)
+        self.testing_data = DataUtils.normalize_set(self.testing_data)
 
     @staticmethod
     def get_train_data():
@@ -176,6 +177,16 @@ class DataUtils:
     @staticmethod
     def transform_image(arr):
         return DataUtils.resize(DataUtils.make_square(arr))
+
+    @staticmethod
+    def normalize_set(dataset):
+        # Assuming shape is the same for all images
+        shape = len(dataset), dataset[0].shape[0]*dataset[0].shape[1]
+        res = np.zeros(shape, np.float)
+        for i, img in enumerate(dataset):
+            res[i] = DataUtils.normalize(img)
+
+        return res
 
     @staticmethod
     def normalize(image):
