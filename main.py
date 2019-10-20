@@ -4,6 +4,7 @@ import os
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from skimage import color
 
 
 class Parameters:
@@ -15,14 +16,14 @@ class Parameters:
     track_length = 30
 
     brightness_prob = 0.5
-    blur_prob = 1
+    blur_prob = 0.5
 
     brightness_alpha_range = (0.6, 2.3)
     brightness_beta_range = (-15, 30)
 
     blur_kernel_range = (1, 3)
     # Number of images that will be blended together to generate a new image for augmentation
-    augment_images_count = 25
+    augment_images_count = 10
 
 
 class DataUtils:
@@ -91,6 +92,11 @@ class DataUtils:
             self.training_labels += [c]*(target - len(class_images))
             self.training_data += new_images
             start_index = end_index
+
+    def normalize_images(self):
+        self.training_data = list(map(DataUtils.normalize, self.training_data))
+        self.validation_data = list(map(DataUtils.normalize, self.validation_data))
+        self.testing_data = list(map(DataUtils.normalize, self.testing_data))
 
     @staticmethod
     def get_train_data():
@@ -170,6 +176,12 @@ class DataUtils:
     @staticmethod
     def transform_image(arr):
         return DataUtils.resize(DataUtils.make_square(arr))
+
+    @staticmethod
+    def normalize(image):
+        grayscale = color.rgb2gray(image)
+
+        return grayscale.flatten()
 
     @staticmethod
     def generate_image(images, method='random'):
