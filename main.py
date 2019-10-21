@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.utils import shuffle
 
 
 class Parameters:
@@ -14,6 +15,8 @@ class Parameters:
     test_set_annotation_filename = 'GT-final_test.csv'
 
     n_trees = 512
+    max_depth = 500
+    min_samples_leaf = 100
 
     resize_dim = (30, 30)
     track_length = 30
@@ -76,6 +79,9 @@ class DataUtils:
             validation_labels += [c] * (len(track_indexes) - train_size) * Parameters.track_length
             start_index = end_index
 
+        train_data, train_labels = shuffle(train_data, train_labels)
+        validation_data, validation_labels = shuffle(validation_data, validation_labels)
+
         self.training_data = train_data
         self.training_labels = train_labels
         self.validation_data = validation_data
@@ -85,16 +91,17 @@ class DataUtils:
         classes = range(43)
         frequencies = [self.training_labels.count(c) for c in classes]
         target = max(frequencies)
+        images = [[] for _ in range(43)]
 
-        start_index = 0
-        for i, c in enumerate(classes):
-            end_index = start_index + frequencies[i]
-            class_images = self.training_data[start_index:end_index]
-            new_images = DataUtils.generate_images(class_images, target - len(class_images))
+        for i, label in enumerate(self.training_labels):
+            images[label].append(self.training_data[i])
 
-            self.training_labels += [c]*(target - len(class_images))
-            self.training_data += new_images
-            start_index = end_index
+        for i, im_class in enumerate(images):
+            generate_count = target - len(im_class)
+            self.training_data += DataUtils.generate_images(im_class, generate_count)
+            self.training_labels += [i]*generate_count
+
+        return True
 
     def normalize_images(self):
         self.training_data = DataUtils.normalize_set(self.training_data)
@@ -249,7 +256,7 @@ class DataUtils:
     def generate_images(images, image_count):
         res = []
         for i in range(image_count):
-            indexes = np.random.choice(len(images), min(Parameters.augment_images_count, len(images)), replace=False)
+            indexes = np.random.choice(len(images), min(Parameters.augment_images_count, len(images)))
             sample_images = [images[j] for j in indexes]
             np.random.sample()
             new_image = DataUtils.generate_image(sample_images)
@@ -268,7 +275,8 @@ class Model:
             n_estimators=Parameters.n_trees,
             n_jobs=-1,
             criterion="gini",
-            min_samples_leaf=2
+            min_samples_leaf=Parameters.min_samples_leaf,
+            max_depth=Parameters.max_depth
         )
         self.__classifier.fit(train_data, train_labels)
         validation = self.__classifier.predict(validation_data)
