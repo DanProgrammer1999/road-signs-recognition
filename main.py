@@ -15,21 +15,21 @@ class Parameters:
     test_set_annotation_filename = 'GT-final_test.csv'
 
     n_trees = 512
-    max_depth = 500
-    min_samples_leaf = 100
+    max_depth = 1000
+    min_samples_leaf = 5
 
     resize_dim = (30, 30)
     track_length = 30
 
-    brightness_prob = 0.4
-    blur_prob = 0.01
+    brightness_prob = 0.5
+    blur_prob = 0
 
     brightness_alpha_range = (0.5, 2)
-    brightness_beta_range = (-20, 20)
+    brightness_beta_range = (-10, 10)
 
     blur_kernel_range = (1, 3)
     # Number of images that will be blended together to generate a new image for augmentation
-    augment_images_count = 5
+    augment_images_count = 10
 
 
 class DataUtils:
