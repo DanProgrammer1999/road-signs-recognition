@@ -251,9 +251,6 @@ class DataUtils:
 
 class Model:
     def __init__(self):
-        self.__classifier = None
-
-    def fit(self, train_data, train_labels):
         self.__classifier = RandomForestClassifier(
             max_features="auto",
             n_estimators=Parameters.n_trees,
@@ -262,6 +259,8 @@ class Model:
             min_samples_leaf=Parameters.min_samples_leaf,
             max_depth=Parameters.max_depth
         )
+
+    def fit(self, train_data, train_labels):
         self.__classifier.fit(train_data, train_labels)
         train_pred = self.__classifier.predict(train_data)
         return accuracy_score(train_labels, train_pred)
@@ -315,7 +314,7 @@ class Test:
     @staticmethod
     def train_model(data, model):
         score, curr_time = Test.timed_function(model.fit, data.training_data, data.training_labels)
-        print("Train set accuracy: {}. \nModel fit: {:0.2f}s".format(score, curr_time))
+        print("Train set accuracy: {:0.2f}. \nModel fit: {:0.2f}s".format(score, curr_time))
 
         return model
 
@@ -350,6 +349,15 @@ class Test:
         return matrix
 
     @staticmethod
+    def get_mispredicted(real, predicted):
+        res = []
+        for i in range(len(real)):
+            if real[i] != predicted[i]:
+                res.append((real, predicted))
+
+        return res
+
+    @staticmethod
     def main():
         data = DataUtils()
         model = Model()
@@ -371,4 +379,12 @@ class Test:
 
 
 if __name__ == '__main__':
+    # Uncomment lines below to test on different sizes
+
+    # sizes = [(10, 10), (25, 25), (50, 50), (75, 75), (100, 100)]
+    # for size in sizes:
+    #     print("\nTesting size {}\n".format(size))
+    #     Parameters.resize_dim = size
+    #     Test.main()
+    #     print("-"*50, '\n')
     Test.main()
